@@ -1,20 +1,34 @@
 pipeline {
     agent any
-
-    stages {
-        stage('Build') {
-            steps {
-                echo 'Building the app'
+    stages{
+        stage('checkout'){
+            steps{
+                git branch: 'main', url: 'https://github.com/Parth2k3/test-django'
             }
         }
-        stage('Test'){
+        stage('Login to ECR'){
             steps{
-                echo 'Running tests'
+                withAWS(region: 'ap-south-1', credentials: 'aws-creds'){
+                    powershell '''
+                    $password = aws ecr get-login-password --region ap-south-1
+                    docker login --username AWS --password $password 864981751441.dkr.ecr.ap-south-1.amazonaws.com
+                    '''
+                }
             }
         }
-        stage('Deploy'){
+        stage('Build docker image'){
             steps{
-                echo 'Deploying the app'
+                powershell '''
+                docker build -t test:django
+                docker tag test:django 864981751441.dkr.ecr.ap-south-1.amazonaws.com/test:django
+                '''
+            }
+        }
+        stage('Pushing image to ECR'){
+            steps{
+                powershell '''
+                docker push 864981751441.dkr.ecr.ap-south-1.amazonaws.com/test:django
+                '''
             }
         }
     }
