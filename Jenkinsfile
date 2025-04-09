@@ -2,31 +2,27 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'parth2k3/test-django'
+        VENV = 'venv'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clone Repo') {
             steps {
-                git branch:'main',url: 'https://github.com/Parth2k3/test-django'
+                git 'https://github.com/Parth2k3/test-django.git'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Set up Python Virtual Env') {
             steps {
-                bat "docker build -t %IMAGE_NAME%:latest ."
+                bat 'python -m venv %VENV%'
+                bat '%VENV%\\Scripts\\python -m pip install --upgrade pip'
+                bat '%VENV%\\Scripts\\pip install -r requirements.txt'
             }
         }
 
-        stage('Push to DockerHub') {
+        stage('Run Django Tests') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    bat """
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                    docker push %IMAGE_NAME%:latest
-                    docker logout
-                    """
-                }
+                bat '%VENV%\\Scripts\\python manage.py test'
             }
         }
     }
